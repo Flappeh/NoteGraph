@@ -1,0 +1,14 @@
+# Local development dependencies: Postgres + an S3-compatible store.
+# SeaweedFS is used because the official MinIO images are no longer freely
+# pullable; any S3 endpoint (MinIO, Garage, AWS) works the same way.
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment: { POSTGRES_USER: notegraph, POSTGRES_PASSWORD: notegraph, POSTGRES_DB: notegraph }
+    ports: ["5432:5432"]
+  s3:
+    image: chrislusf/seaweedfs:3.97
+    command: server -s3 -s3.port=9000 -s3.config=/etc/seaweed/s3.json -dir=/data
+    volumes: ["./dev-s3.json:/etc/seaweed/s3.json:ro"]
+    ports: ["9000:9000"]   # access key: notegraph / secret: notegraph-dev-secret

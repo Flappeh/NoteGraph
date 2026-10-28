@@ -1,0 +1,7 @@
+/notegraph
+/notegraph.exe
+.env
+web/node_modules/
+web/dist/
+.env*
+.env.*

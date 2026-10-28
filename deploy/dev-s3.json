@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "notegraph",
+      "credentials": [{ "accessKey": "notegraph", "secretKey": "notegraph-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

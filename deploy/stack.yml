@@ -1,0 +1,50 @@
+# Docker Swarm stack for NoteGraph behind Traefik.
+#   docker secret create notegraph_database_url -   (postgres://notegraph:...@host:5432/notegraph?sslmode=disable)
+#   docker secret create notegraph_s3_secret_key -
+#   docker secret create notegraph_google_client_secret -   (optional; can also be set in-app)
+#   NOTEGRAPH_IMAGE=registry.example/notegraph:1.0.0 docker stack deploy -c stack.yml notegraph
+services:
+  app:
+    image: ${NOTEGRAPH_IMAGE:-notegraph:latest}
+    environment:
+      APP_URL: https://notegraph.int.flappeh.my.id
+      DATABASE_URL_FILE: /run/secrets/notegraph_database_url
+      ADMIN_EMAIL: ${NOTEGRAPH_ADMIN_EMAIL:-}
+      ALLOW_SIGNUP: "false"            # seed only; change later in Settings > Server
+      GOOGLE_CLIENT_ID: ${NOTEGRAPH_GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET_FILE: /run/secrets/notegraph_google_client_secret
+      S3_ENDPOINT: ${NOTEGRAPH_S3_ENDPOINT:-minio:9000}
+      S3_USE_SSL: ${NOTEGRAPH_S3_USE_SSL:-false}
+      S3_BUCKET: notegraph
+      S3_ACCESS_KEY: ${NOTEGRAPH_S3_ACCESS_KEY:-notegraph}
+      S3_SECRET_KEY_FILE: /run/secrets/notegraph_s3_secret_key
+      MAX_UPLOAD_MB: "50"
+    secrets:
+      - notegraph_database_url
+      - notegraph_s3_secret_key
+      - notegraph_google_client_secret
+    networks: [traefik]
+    deploy:
+      replicas: 2
+      update_config: { order: start-first, parallelism: 1 }
+      restart_policy: { condition: any }
+      resources:
+        limits: { memory: 128M }
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik
+        - traefik.http.routers.notegraph.rule=Host(`notegraph.int.flappeh.my.id`)
+        - traefik.http.routers.notegraph.entrypoints=https
+        - traefik.http.routers.notegraph.tls.certresolver=cloudflare
+        - traefik.http.services.notegraph.loadbalancer.server.port=8080
+        # Large attachment uploads
+        - traefik.http.middlewares.notegraph-body.buffering.maxRequestBodyBytes=60000000
+        - traefik.http.routers.notegraph.middlewares=notegraph-body
+
+secrets:
+  notegraph_database_url: { external: true }
+  notegraph_s3_secret_key: { external: true }
+  notegraph_google_client_secret: { external: true }
+
+networks:
+  traefik: { external: true }
